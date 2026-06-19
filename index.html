@@ -879,6 +879,10 @@
     <button class="btn btn-outline admin-only-btn" onclick="showSheetsHistory()" style="display:none;">
       &#128203; <span>ประวัติ (Sheets)</span>
     </button>
+    <!-- งานช่าง — แสดงเสมอ -->
+    <button class="btn btn-outline" onclick="showTechDashboard()" id="btnTechDash">
+      &#128295; <span>งานช่าง</span>
+    </button>
     <!-- จัดการ Users — admin only -->
     <button class="btn btn-outline admin-only-btn" id="btnUserMgr" onclick="openUserManager()" style="display:none;">
       &#128100; <span>จัดการ Users</span>
@@ -1031,6 +1035,79 @@
   <div id="statsContent"></div>
 </div>
 
+<!-- ===== TECH DASHBOARD PAGE ===== -->
+<div id="techDashPage" style="display:none;" class="app-wrapper">
+  <div class="page-header">
+    <div>
+      <h2>🔧 งานวันนี้ช่าง — Tech Dashboard</h2>
+      <p>แสดงใบงานแยกตามช่าง — เลือกช่วงเวลาเพื่อดูสรุปงาน</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="tdLoadData()" class="btn btn-outline" style="font-size:13px;padding:7px 14px;">&#8635; รีเฟรช</button>
+      <button onclick="showPage('form')" style="padding:8px 18px;background:var(--blue);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;">+ ใบงานใหม่</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div style="background:white;border-radius:12px;border:1px solid var(--border);padding:16px 20px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+    <!-- Period Mode -->
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">ช่วงเวลา</div>
+      <div style="display:flex;gap:6px;">
+        <button id="tdModeDay"   onclick="tdSetMode('day')"   style="padding:7px 16px;border-radius:7px;border:1.5px solid var(--blue);background:var(--blue);color:white;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">รายวัน</button>
+        <button id="tdModeMonth" onclick="tdSetMode('month')" style="padding:7px 16px;border-radius:7px;border:1.5px solid var(--border);background:white;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">รายเดือน</button>
+        <button id="tdModeYear"  onclick="tdSetMode('year')"  style="padding:7px 16px;border-radius:7px;border:1.5px solid var(--border);background:white;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">รายปี</button>
+      </div>
+    </div>
+    <!-- Date Picker (changes per mode) -->
+    <div id="tdDatePickerWrap">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;" id="tdDateLabel">วันที่</div>
+      <input type="date" id="tdDatePicker" onchange="tdApplyFilter()" style="font-family:inherit;font-size:14px;padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;outline:none;">
+    </div>
+    <!-- Month Picker -->
+    <div id="tdMonthPickerWrap" style="display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">เดือน</div>
+      <input type="month" id="tdMonthPicker" onchange="tdApplyFilter()" style="font-family:inherit;font-size:14px;padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;outline:none;">
+    </div>
+    <!-- Year Picker -->
+    <div id="tdYearPickerWrap" style="display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">ปี</div>
+      <select id="tdYearPicker" onchange="tdApplyFilter()" style="font-family:inherit;font-size:14px;padding:8px 12px;border:1.5px solid var(--border);border-radius:7px;outline:none;background:#fafafa;"></select>
+    </div>
+    <!-- Nav arrows -->
+    <div style="display:flex;gap:6px;align-items:flex-end;">
+      <button onclick="tdNavPrev()" title="ย้อนกลับ" style="padding:8px 14px;border-radius:7px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:14px;cursor:pointer;">◀</button>
+      <button onclick="tdNavNext()" title="ถัดไป" style="padding:8px 14px;border-radius:7px;border:1.5px solid var(--border);background:white;font-family:inherit;font-size:14px;cursor:pointer;">▶</button>
+      <button onclick="tdGoToday()" style="padding:8px 14px;border-radius:7px;border:1.5px solid var(--blue-mid);background:var(--blue-light);color:var(--blue);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">วันนี้</button>
+    </div>
+  </div>
+
+  <!-- PERIOD TITLE -->
+  <div id="tdPeriodTitle" style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:14px;padding:0 4px;"></div>
+
+  <!-- SUMMARY CARDS -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;" class="sh-summary-row">
+    <div class="form-card" style="border-radius:12px;padding:18px 20px;">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">ใบงานทั้งหมด</div>
+      <div style="font-size:28px;font-weight:700;color:var(--blue);" id="tdSumTotal">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">ใบงาน</div>
+    </div>
+    <div class="form-card" style="border-radius:12px;padding:18px 20px;">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">จำนวนช่าง</div>
+      <div style="font-size:28px;font-weight:700;color:var(--blue);" id="tdSumTechs">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">คน</div>
+    </div>
+    <div class="form-card" style="border-radius:12px;padding:18px 20px;">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">เรียกซ่อม</div>
+      <div style="font-size:28px;font-weight:700;color:var(--blue);" id="tdSumService">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">ครั้ง</div>
+    </div>
+  </div>
+
+  <!-- TECH CARDS GRID -->
+  <div id="tdTechGrid" style="display:flex;flex-direction:column;gap:16px;"></div>
+</div>
+
 <!-- FORM APP -->
 <div class="app-wrapper">
 
@@ -1060,10 +1137,29 @@
       <h2>&#128196; กรอกใบงานบริการ</h2>
       <p>Service Report — FM-OGA/SV-001, Rev.04 &nbsp;|&nbsp; กรอกข้อมูลให้ครบถ้วนแล้วกด <strong>สั่งพิมพ์</strong></p>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-outline" style="color:var(--blue);background:var(--blue-light);border-color:var(--blue-mid);" onclick="openImportJobPicker()">
+        &#128229; ดึงจาก JOB ที่ Import
+      </button>
       <div class="field" style="min-width:220px;border-radius:9px;">
         <label style="flex:0 0 auto;min-width:90px;"><span class="th">เลขที่</span> / No.</label>
         <input type="text" id="f_no" placeholder="เช่น SV-2566-001">
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT JOB PICKER MODAL -->
+  <div id="importJobOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:210;align-items:center;justify-content:center;" onclick="closeImportJobPicker(event)">
+    <div style="background:white;border-radius:14px;width:92%;max-width:640px;max-height:82vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--blue);">&#128229; เลือก JOB จากที่ Import ไว้</h3>
+        <button style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;" onclick="document.getElementById('importJobOverlay').style.display='none'">&#10005;</button>
+      </div>
+      <div style="padding:14px 22px;border-bottom:1px solid var(--border);">
+        <input type="text" id="importJobSearch" placeholder="ค้นหา JOB NO / ชื่อลูกค้า / รุ่นสินค้า..." oninput="renderImportJobList()" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;outline:none;">
+      </div>
+      <div id="importJobListBody" style="overflow-y:auto;padding:10px 14px;flex:1;">
+        <div style="text-align:center;padding:40px;color:var(--muted);">กำลังโหลด...</div>
       </div>
     </div>
   </div>
@@ -1412,12 +1508,25 @@ function checkBox(val) {
   return '<span class="pchk' + (val ? ' checked' : '') + '"></span>';
 }
 
+function normalizeDate(raw) {
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // MM/DD/YYYY (Google Sheets default)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(raw)) {
+    const [mm, dd, yyyy] = raw.split('/');
+    return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+  }
+  const parsed = new Date(raw);
+  if (!isNaN(parsed)) return parsed.toISOString().split('T')[0];
+  return raw;
+}
+
 function formatDate(d) {
   if (!d) return '';
   const parts = d.split('-');
   if (parts.length !== 3) return d;
-  const thYear = parseInt(parts[0]) + 543;
-  return parts[2] + '/' + parts[1] + '/' + thYear;
+  const thYear = String(parseInt(parts[0]) + 543).slice(-2);
+  return parts[2] + '-' + parts[1] + '-' + thYear;
 }
 
 function formatTime(t) {
@@ -1976,7 +2085,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== APPS SCRIPT CONFIG =====
 // *** วาง URL จาก Deploy → Web App ตรงนี้ ***
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUJko7dEkqIt_YfzlKj3pFA3217axKXWFrCsYODhY6mUJk4X3F_I-1JCAegDyKad6t/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmT15bHY2PjYk-B_VbEjBfW_N7kHJ5Ii1GfdLEQE9XXAv3xPEzluYQGmNPdm9jqIa9/exec';
 
 // ===== GOOGLE SHEETS CONFIG =====
 // NOTE: SHEET_ID ใช้เฉพาะ legacy path (fallback) — การ save/read หลักผ่าน Apps Script ด้านบนทั้งหมด
@@ -2153,9 +2262,11 @@ function saveToLocalHistory() {
 // PAGE NAVIGATION
 // ===========================
 function showPage(page) {
-  document.querySelector('.app-wrapper:not(#historyPage):not(#sheetsHistoryPage)').style.display = (page==='form') ? '' : 'none';
+  document.querySelector('.app-wrapper:not(#historyPage):not(#sheetsHistoryPage):not(#techDashPage)').style.display = (page==='form') ? '' : 'none';
   document.getElementById('historyPage').style.display = (page==='history') ? '' : 'none';
   document.getElementById('sheetsHistoryPage').style.display = (page==='sheetsHistory') ? '' : 'none';
+  const tdPage = document.getElementById('techDashPage');
+  if (tdPage) tdPage.style.display = 'none';
   if (page==='history') renderHistory();
   if (page==='sheetsHistory') shLoadData();
 }
@@ -2354,6 +2465,7 @@ async function shLoadData() {
     const headers = ['บันทึกเมื่อ','เลขที่','วันที่','ลูกค้า','ผู้ติดต่อ','ที่อยู่','โทรศัพท์','เครื่อง/รุ่น','จำนวน','วันติดตั้ง','Serial No.','ประเภทบริการ','อื่นๆ','อาการเสีย','สาเหตุ/แก้ไข','หมายเหตุ','ค่าบริการ','ความพึงพอใจ','ช่าง','ผู้รับบริการ','เวลาเริ่ม','เวลาเสร็จ'];
     shAllData = records.map((obj, i) => {
       const row = headers.map(h => obj[h] || '');
+      row[2] = normalizeDate(row[2]); // normalize วันที่
       row._origRowIndex = i + 2;
       return row;
     }).reverse();
@@ -2514,11 +2626,13 @@ function shFormatDate(d) {
   if (!d) return '—';
   const p = d.split('-');
   if (p.length !== 3) return d;
-  return `${p[2]}/${p[1]}/${parseInt(p[0])+543}`;
+  return `${p[2]}-${p[1]}-${String(parseInt(p[0])+543).slice(-2)}`;
 }
 
 function shOpenDetail(idx) {
   shCurrentRow = shFiltered[idx];
+  const overlay = document.getElementById('shModalOverlay');
+  if (overlay) overlay._tdMode = false;
   const r = shCurrentRow;
   document.getElementById('shModalTitle').textContent = `ใบงานเลขที่ ${r[1]||'—'}`;
   const rmap = {'ยอดเยี่ยม':'#1b5e20;background:#e8f5e9','ดี':'#0d47a1;background:#e3f2fd','พอใช้':'#e65100;background:#fff8e1','ควรปรับปรุง':'#b71c1c;background:#ffebee'};
@@ -2589,8 +2703,10 @@ function shDeleteFromModal() {
 }
 
 function shPrintModal() {
-  if (!shCurrentRow) return;
-  const r = shCurrentRow;
+  const overlay = document.getElementById('shModalOverlay');
+  const isTd = overlay && overlay._tdMode;
+  const r = isTd ? tdCurrentRow : shCurrentRow;
+  if (!r) return;
   const params = new URLSearchParams({
     no:r[1]||'', date:r[2]||'', customer:r[3]||'', contact:r[4]||'',
     address:r[5]||'', tel:r[6]||'', machine:r[7]||'', qty:r[8]||'',
@@ -2959,6 +3075,104 @@ async function callSheetAPI(body) {
     body: JSON.stringify(body)
   });
   return resp.json();
+}
+
+// ===== IMPORT JOB PICKER (ดึง JOB ที่ import จาก PDF เข้ามาเติมในฟอร์ม) =====
+let _importedJobsCache = null;
+
+async function openImportJobPicker() {
+  const overlay = document.getElementById('importJobOverlay');
+  overlay.style.display = 'flex';
+  document.getElementById('importJobSearch').value = '';
+
+  if (!_importedJobsCache) {
+    document.getElementById('importJobListBody').innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--muted);">กำลังโหลด...</div>';
+    try {
+      const result = await callSheetAPI({ action: 'getImportedJobs' });
+      if (!result.ok) {
+        document.getElementById('importJobListBody').innerHTML =
+          '<div style="text-align:center;padding:40px;color:#c62828;">' + (result.error || 'โหลดข้อมูลไม่สำเร็จ') + '</div>';
+        return;
+      }
+      _importedJobsCache = result.jobs || [];
+    } catch (e) {
+      document.getElementById('importJobListBody').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#c62828;">เชื่อมต่อ Server ไม่ได้: ' + e.message + '</div>';
+      return;
+    }
+  }
+  renderImportJobList();
+}
+
+function closeImportJobPicker(e) {
+  if (e.target.id === 'importJobOverlay') e.target.style.display = 'none';
+}
+
+function renderImportJobList() {
+  const q = (document.getElementById('importJobSearch').value || '').trim().toLowerCase();
+  const jobs = _importedJobsCache || [];
+  const filtered = !q ? jobs : jobs.filter(j =>
+    Object.values(j).some(v => String(v || '').toLowerCase().includes(q))
+  );
+
+  const body = document.getElementById('importJobListBody');
+  if (jobs.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">ยังไม่มี JOB ที่ Import ไว้ใน Sheet "SERVICE_OUT"</div>';
+    return;
+  }
+  if (filtered.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">ไม่พบ JOB ที่ตรงกับการค้นหา</div>';
+    return;
+  }
+
+  body.innerHTML = filtered.map(j => {
+    const idx = jobs.indexOf(j);
+    const jobNo   = j['JOB NO'] || '—';
+    const cust    = j['ชื่อลูกค้า'] || '';
+    const model   = j['รุ่นสินค้า'] || '';
+    const sn      = j['S/N'] || '';
+    const appoint = j['วันที่นัดลูกค้า'] || '';
+    return `
+      <div onclick="selectImportedJob(${idx})"
+           style="padding:12px 14px;border:1px solid #e0e8f5;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background 0.15s;"
+           onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background='white'">
+        <div style="font-weight:700;color:var(--blue);font-size:14px;">${jobNo}
+          <span style="color:var(--text);font-weight:600;"> &nbsp;${cust}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">
+          ${model}${sn ? ' · S/N ' + sn : ''}${appoint ? ' · นัด ' + appoint : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function importedDateToInputFormat(str) {
+  if (!str) return '';
+  const m = String(str).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!m) return '';
+  const d = m[1].padStart(2, '0'), mo = m[2].padStart(2, '0'), y = m[3];
+  return `${y}-${mo}-${d}`;
+}
+
+function selectImportedJob(idx) {
+  const j = (_importedJobsCache || [])[idx];
+  if (!j) return;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+
+  set('f_no',       j['JOB NO']);
+  set('f_customer', j['ชื่อลูกค้า']);
+  set('f_contact',  j['ผู้แจ้ง']);
+  set('f_address',  j['ที่อยู่']);
+  set('f_machine',  j['รุ่นสินค้า']);
+  set('f_serial',   j['S/N']);
+  set('f_trouble',  j['อาการ / รายละเอียด']);
+
+  const dateVal = importedDateToInputFormat(j['วันที่นัดลูกค้า']);
+  if (dateVal) set('f_date', dateVal);
+
+  document.getElementById('importJobOverlay').style.display = 'none';
 }
 
 async function toggleUser(i) {
@@ -3384,7 +3598,305 @@ function draftStartAutoSave() {
   }, 30000); // ทุก 30 วิ
 }
 
-// hook เข้า DOMContentLoaded init แทน
+// ===========================
+// TECH DASHBOARD
+// ===========================
+let tdAllData = [];
+let tdFiltered = [];
+let tdMode = 'day'; // 'day' | 'month' | 'year'
+
+function showTechDashboard() {
+  const sess = getSession();
+  if (!sess) { alert('กรุณาเข้าสู่ระบบก่อน'); return; }
+  document.querySelector('.app-wrapper:not(#historyPage):not(#sheetsHistoryPage):not(#techDashPage)').style.display = 'none';
+  document.getElementById('historyPage').style.display = 'none';
+  document.getElementById('sheetsHistoryPage').style.display = 'none';
+  document.getElementById('techDashPage').style.display = '';
+  tdInitPickers();
+  tdLoadData();
+}
+
+function tdInitPickers() {
+  // Fill year select
+  const yrSel = document.getElementById('tdYearPicker');
+  if (!yrSel.options.length) {
+    const now = new Date();
+    for (let y = now.getFullYear(); y >= now.getFullYear() - 5; y--) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = (y + 543) + ' (BE)';
+      yrSel.appendChild(o);
+    }
+  }
+  // Set defaults to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('tdDatePicker').value = today;
+  const ym = today.slice(0, 7);
+  document.getElementById('tdMonthPicker').value = ym;
+  document.getElementById('tdYearPicker').value = new Date().getFullYear();
+  tdSetMode('day');
+}
+
+function tdSetMode(mode) {
+  tdMode = mode;
+  // Update button styles
+  ['day','month','year'].forEach(m => {
+    const btn = document.getElementById('tdMode' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (!btn) return;
+    if (m === mode) {
+      btn.style.background = 'var(--blue)'; btn.style.color = 'white'; btn.style.borderColor = 'var(--blue)';
+    } else {
+      btn.style.background = 'white'; btn.style.color = 'var(--text)'; btn.style.borderColor = 'var(--border)';
+    }
+  });
+  // Show/hide pickers
+  document.getElementById('tdDatePickerWrap').style.display  = mode === 'day'   ? '' : 'none';
+  document.getElementById('tdMonthPickerWrap').style.display = mode === 'month' ? '' : 'none';
+  document.getElementById('tdYearPickerWrap').style.display  = mode === 'year'  ? '' : 'none';
+  // Update label
+  const lblMap = { day: 'วันที่', month: 'เดือน', year: 'ปี' };
+  document.getElementById('tdDateLabel').textContent = lblMap[mode] || 'วันที่';
+  tdApplyFilter();
+}
+
+function tdGetRange() {
+  if (tdMode === 'day') {
+    const d = document.getElementById('tdDatePicker').value || new Date().toISOString().split('T')[0];
+    return { from: d, to: d };
+  } else if (tdMode === 'month') {
+    const m = document.getElementById('tdMonthPicker').value || new Date().toISOString().slice(0,7);
+    const from = m + '-01';
+    const y = parseInt(m.split('-')[0]), mo = parseInt(m.split('-')[1]);
+    const to = new Date(y, mo, 0).toISOString().split('T')[0];
+    return { from, to };
+  } else { // year
+    const y = document.getElementById('tdYearPicker').value || new Date().getFullYear();
+    return { from: `${y}-01-01`, to: `${y}-12-31` };
+  }
+}
+
+function tdNavPrev() {
+  if (tdMode === 'day') {
+    const el = document.getElementById('tdDatePicker');
+    const d = new Date(el.value || new Date());
+    d.setDate(d.getDate() - 1);
+    el.value = d.toISOString().split('T')[0];
+  } else if (tdMode === 'month') {
+    const el = document.getElementById('tdMonthPicker');
+    const [y, m] = (el.value || new Date().toISOString().slice(0,7)).split('-').map(Number);
+    const nd = new Date(y, m - 2, 1);
+    el.value = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
+  } else {
+    const el = document.getElementById('tdYearPicker');
+    el.value = parseInt(el.value) - 1;
+  }
+  tdApplyFilter();
+}
+
+function tdNavNext() {
+  if (tdMode === 'day') {
+    const el = document.getElementById('tdDatePicker');
+    const d = new Date(el.value || new Date());
+    d.setDate(d.getDate() + 1);
+    el.value = d.toISOString().split('T')[0];
+  } else if (tdMode === 'month') {
+    const el = document.getElementById('tdMonthPicker');
+    const [y, m] = (el.value || new Date().toISOString().slice(0,7)).split('-').map(Number);
+    const nd = new Date(y, m, 1);
+    el.value = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
+  } else {
+    const el = document.getElementById('tdYearPicker');
+    el.value = parseInt(el.value) + 1;
+  }
+  tdApplyFilter();
+}
+
+function tdGoToday() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('tdDatePicker').value = today;
+  document.getElementById('tdMonthPicker').value = today.slice(0, 7);
+  document.getElementById('tdYearPicker').value = new Date().getFullYear();
+  tdSetMode('day');
+}
+
+async function tdLoadData() {
+  document.getElementById('tdTechGrid').innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);font-size:15px;"><div style="width:36px;height:36px;border:3px solid #e0e0e0;border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>กำลังโหลดข้อมูล...</div>';
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getServiceOut' })
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    const headers = ['บันทึกเมื่อ','เลขที่','วันที่','ลูกค้า','ผู้ติดต่อ','ที่อยู่','โทรศัพท์','เครื่อง/รุ่น','จำนวน','วันติดตั้ง','Serial No.','ประเภทบริการ','อื่นๆ','อาการเสีย','สาเหตุ/แก้ไข','หมายเหตุ','ค่าบริการ','ความพึงพอใจ','ช่าง','ผู้รับบริการ','เวลาเริ่ม','เวลาเสร็จ'];
+    tdAllData = (result.records || []).map((obj, i) => {
+      const row = headers.map(h => obj[h] || '');
+      row[2] = normalizeDate(row[2]); // normalize วันที่
+      row._origRowIndex = i + 2;
+      return row;
+    });
+    tdApplyFilter();
+  } catch(e) {
+    document.getElementById('tdTechGrid').innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted);"><div style="font-size:48px;margin-bottom:12px;">⚠️</div><p>โหลดข้อมูลไม่สำเร็จ<br><small>${escapeHtml(e.message)}</small></p></div>`;
+  }
+}
+
+function tdApplyFilter() {
+  const { from, to } = tdGetRange();
+  tdFiltered = tdAllData.filter(r => {
+    const d = r[2] || '';
+    return d >= from && d <= to;
+  });
+  // Update period title
+  const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  let periodText = '';
+  if (tdMode === 'day') {
+    const dp = from.split('-');
+    periodText = `📅 วันที่ ${parseInt(dp[2])} ${thMonths[parseInt(dp[1])-1]} ${parseInt(dp[0])+543}`;
+  } else if (tdMode === 'month') {
+    const mp = from.split('-');
+    periodText = `📅 เดือน ${thMonths[parseInt(mp[1])-1]} ${parseInt(mp[0])+543}`;
+  } else {
+    periodText = `📅 ปี พ.ศ. ${parseInt(from.split('-')[0])+543}`;
+  }
+  document.getElementById('tdPeriodTitle').textContent = periodText;
+  // Summary
+  const techSet = new Set(tdFiltered.map(r => r[18]||'ไม่ระบุ'));
+  document.getElementById('tdSumTotal').textContent = tdFiltered.length;
+  document.getElementById('tdSumTechs').textContent = techSet.size;
+  document.getElementById('tdSumService').textContent = tdFiltered.filter(r=>(r[11]||'').includes('เรียกซ่อม')).length;
+  tdRenderTechCards();
+}
+
+function tdRenderTechCards() {
+  const grid = document.getElementById('tdTechGrid');
+  if (!tdFiltered.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><div style="font-size:48px;margin-bottom:12px;">📭</div><p>ไม่พบข้อมูลในช่วงที่เลือก</p></div>';
+    return;
+  }
+  // Group by tech
+  const techMap = {};
+  tdFiltered.forEach(r => {
+    const tech = r[18] || 'ไม่ระบุช่าง';
+    if (!techMap[tech]) techMap[tech] = [];
+    techMap[tech].push(r);
+  });
+  // Sort tech names
+  const techNames = Object.keys(techMap).sort();
+  const visitBadges = str => (str||'').split(',').map(v=>v.trim()).filter(Boolean).map(v=>{
+    const c = v.includes('เรียก')?'#0d47a1;background:#e3f2fd':v.includes('PM')?'#1b5e20;background:#e8f5e9':v.includes('สาธิต')?'#e65100;background:#fff8e1':'#4a148c;background:#f3e5f5';
+    return `<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;color:${c};">${escapeHtml(v)}</span>`;
+  }).join(' ');
+  const ratingColor = v => ({'ยอดเยี่ยม':'#1b5e20','ดี':'#0d47a1','พอใช้':'#e65100','ควรปรับปรุง':'#b71c1c'}[v]||'#555');
+  const ratingBg = v => ({'ยอดเยี่ยม':'#e8f5e9','ดี':'#e3f2fd','พอใช้':'#fff8e1','ควรปรับปรุง':'#ffebee'}[v]||'#f5f5f5');
+  const fmtDate = d => { if(!d)return'—'; const p=d.split('-'); return p.length===3?`${p[2]}-${p[1]}-${String(parseInt(p[0])+543).slice(-2)}`:d; };
+
+  let techIdx = 0;
+  grid.innerHTML = techNames.map(tech => {
+    const jobs = techMap[tech];
+    const tIdx = techIdx++;
+    const rowsHtml = jobs.map((r, jIdx) => {
+      const globalId = `tdRow_${tIdx}_${jIdx}`;
+      const rval = r[17]||'';
+      return `<div style="border-bottom:1px solid #f0f4ff;padding:11px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''" onclick="tdOpenDetail(${tIdx},${jIdx})">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-size:13.5px;font-weight:700;color:var(--blue);">${escapeHtml(r[1])||'—'} &nbsp;<span style="font-size:12px;font-weight:500;color:#555;">${escapeHtml(r[3])||''}</span></div>
+          <div style="font-size:12px;color:#777;margin-top:2px;">🗓 ${fmtDate(r[2])} &nbsp; 🏭 ${escapeHtml(r[7])||'—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${visitBadges(r[11])}
+          ${rval ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;color:${ratingColor(rval)};background:${ratingBg(rval)};">${rval}</span>` : ''}
+        </div>
+        <button style="padding:5px 14px;border-radius:6px;border:none;background:var(--blue-mid);color:white;font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();tdOpenDetail(${tIdx},${jIdx})">ดูรายละเอียด ›</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="form-card" style="overflow:hidden;border-radius:12px;" id="tdCard_${tIdx}">
+      <!-- Card Header -->
+      <div style="background:var(--blue-light);padding:14px 20px;border-bottom:1px solid #c5d5ef;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;">
+            ${escapeHtml(tech).charAt(0)||'👷'}
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--blue);">👷 ${escapeHtml(tech)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:1px;">มีงาน <strong style="color:var(--blue);font-size:14px;">${jobs.length}</strong> ใบงาน ในช่วงที่เลือก</div>
+          </div>
+        </div>
+        <button onclick="tdToggleCard(${tIdx})" id="tdToggleBtn_${tIdx}" style="padding:6px 14px;border-radius:7px;border:1.5px solid var(--blue-mid);background:white;color:var(--blue);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+          ▼ ดูงาน
+        </button>
+      </div>
+      <!-- Job Rows (collapsed by default) -->
+      <div id="tdCardBody_${tIdx}" style="display:none;">
+        ${rowsHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Store reference for detail modal
+  window._tdTechMap = techMap;
+  window._tdTechNames = techNames;
+}
+
+function tdToggleCard(tIdx) {
+  const body = document.getElementById(`tdCardBody_${tIdx}`);
+  const btn  = document.getElementById(`tdToggleBtn_${tIdx}`);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  btn.textContent = open ? '▼ ดูงาน' : '▲ ซ่อน';
+}
+
+let tdCurrentRow = null;
+function tdOpenDetail(tIdx, jIdx) {
+  const tech = window._tdTechNames[tIdx];
+  const jobs = window._tdTechMap[tech];
+  if (!jobs) return;
+  tdCurrentRow = jobs[jIdx];
+  const r = tdCurrentRow;
+  const fmtDate = d => { if(!d)return'—'; const p=d.split('-'); return p.length===3?`${p[2]}-${p[1]}-${String(parseInt(p[0])+543).slice(-2)}`:d; };
+  const rval = r[17]||'';
+  const rmap = {'ยอดเยี่ยม':'#1b5e20;background:#e8f5e9','ดี':'#0d47a1;background:#e3f2fd','พอใช้':'#e65100;background:#fff8e1','ควรปรับปรุง':'#b71c1c;background:#ffebee'};
+  const rc = rmap[rval]||'';
+  function visitBadges(str) {
+    return (str||'').split(',').map(v=>v.trim()).filter(Boolean).map(v=>{
+      const c = v.includes('เรียก')?'#0d47a1;background:#e3f2fd':v.includes('PM')?'#1b5e20;background:#e8f5e9':v.includes('สาธิต')?'#e65100;background:#fff8e1':'#4a148c;background:#f3e5f5';
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;color:${c};">${escapeHtml(v)}</span>`;
+    }).join(' ');
+  }
+  document.getElementById('shModalTitle').textContent = `ใบงานเลขที่ ${r[1]||'—'} — ${tech}`;
+  document.getElementById('shModalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">เลขที่</label><div style="font-size:14px;">${escapeHtml(r[1])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">วันที่</label><div style="font-size:14px;">${fmtDate(r[2])}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ลูกค้า</label><div style="font-size:14px;">${escapeHtml(r[3])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ผู้ติดต่อ</label><div style="font-size:14px;">${escapeHtml(r[4])||'—'}</div></div>
+      <div style="grid-column:1/-1;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ที่อยู่</label><div style="font-size:14px;">${escapeHtml(r[5])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">โทรศัพท์</label><div style="font-size:14px;">${escapeHtml(r[6])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">เครื่อง/รุ่น</label><div style="font-size:14px;">${escapeHtml(r[7])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">จำนวน</label><div style="font-size:14px;">${escapeHtml(r[8])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Serial No.</label><div style="font-size:14px;">${escapeHtml(r[10])||'—'}</div></div>
+      <div style="grid-column:1/-1;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ประเภทบริการ</label><div style="font-size:14px;">${visitBadges(r[11])||'—'}</div></div>
+      <div style="grid-column:1/-1;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">อาการเสีย</label><div style="font-size:14px;line-height:1.5;">${escapeHtml(r[13])||'—'}</div></div>
+      <div style="grid-column:1/-1;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">สาเหตุ / วิธีแก้ไข</label><div style="font-size:14px;line-height:1.5;">${escapeHtml(r[14])||'—'}</div></div>
+      <div style="grid-column:1/-1;"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">หมายเหตุ</label><div style="font-size:14px;">${escapeHtml(r[15])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ค่าบริการ</label><div style="font-size:14px;">${escapeHtml(r[16])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ความพึงพอใจ</label><div style="font-size:14px;">${rval?`<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;color:${rc};">${rval}</span>`:'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ช่างผู้ให้บริการ</label><div style="font-size:14px;font-weight:600;color:var(--blue);">👷 ${escapeHtml(r[18])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">ผู้รับบริการ</label><div style="font-size:14px;">${escapeHtml(r[19])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">เวลาเริ่มงาน</label><div style="font-size:14px;">${escapeHtml(r[20])||'—'}</div></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">เวลาเสร็จงาน</label><div style="font-size:14px;">${escapeHtml(r[21])||'—'}</div></div>
+    </div>`;
+  // Hide delete button in this context (reuse shModal)
+  const delBtn = document.getElementById('shModalDeleteBtn');
+  if (delBtn) delBtn.style.display = 'none';
+  // Store which row is active for printing
+  document.getElementById('shModalOverlay')._tdMode = true;
+  document.getElementById('shModalOverlay').style.display = 'flex';
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
   // ถ้า session อยู่แล้ว render draft ทันที
   setTimeout(() => {
